@@ -63,20 +63,23 @@ def sql_query(query: str, params: Optional[Dict[str, Any]] = None) -> ToolResult
 # ========= helper: pegar lat/lng do usuário =========
 def _user_coords(id_usuario: int) -> Optional[Tuple[float, float]]:
     try:
-        with _conn() as cx, cx.cursor() as cur:
-            cur.execute("""
-                SELECT latitude, longitude
-                FROM tbl_enderecoUsuario
-                WHERE id_usuario=%s
-                ORDER BY id_endereco DESC
-                LIMIT 1
-            """, (id_usuario,))
-            row = cur.fetchone()
-            if row and row["latitude"] is not None and row["longitude"] is not None:
-                return float(row["latitude"]), float(row["longitude"])
-            return None
-    except Exception:
+        with _conn() as cx:
+            with cx.cursor(DictCursor) as cur:
+                cur.execute("""
+                    SELECT latitude, longitude
+                    FROM tbl_enderecoUsuario
+                    WHERE id_usuario=%s
+                    ORDER BY id_endereco DESC
+                    LIMIT 1
+                """, (id_usuario,))
+                row = cur.fetchone()
+                if row and row.get("latitude") is not None and row.get("longitude") is not None:
+                    return float(row["latitude"]), float(row["longitude"])
+                return None
+    except Exception as e:
+        print("Erro em _user_coords:", e)
         return None
+
 
 # ========= 2) best_promotions: preço + distância =========
 def best_promotions(
